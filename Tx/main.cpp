@@ -1,6 +1,5 @@
 #include "WifiPort3.h"
 #include "Joystick.h"
-#include "Ultrasonic.h"
 
 // A structure, similar to our servo and stepper motors, but this one conatins variables to be transmitted
 // Any variable you want to transmit/recieve must be initalized in the DataPacket structure
