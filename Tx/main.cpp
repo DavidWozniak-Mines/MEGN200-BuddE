@@ -33,8 +33,6 @@ int joy2Y = A3;
 int joy1SW = 3;
 int joy2SW = 2;
 
-int button1 = 5;
-int button2 = 4;
 
 void setup() {
   //DONT USE PIN13 FOR ANY SENSOR OR ACTUATORS
@@ -48,11 +46,8 @@ void setup() {
 
   WifiSerial.begin("ssid_GROUP_64_WIFI", "password_PASSWORD", WifiPortType::Transmitter);
 
-  pinMode(joy1SW, INPUT_PULLUP);
+  pinMode(joy1SW, INPUT_PULLUP); // Set both joystick buttons to input pullup modes
   pinMode(joy2SW, INPUT_PULLUP);
-
-  pinMode(button1, INPUT_PULLUP);
-  pinMode(button2, INPUT_PULLUP);
 
 
 }
@@ -60,10 +55,11 @@ void setup() {
 void loop() {
 
   if (WifiSerial.getPortType() == WifiPortType::Transmitter) {
-    WifiSerial.autoReconnect();//try and connect
+    WifiSerial.autoReconnect(); // try and connect
 
-    //Tx stuff below
+    // Tx stuff below
     while (true) {
+
       // Get Joy1 Data
       data.joy1.x = analogRead(joy1X);
       data.joy1.y = analogRead(joy1Y);
@@ -75,10 +71,6 @@ void loop() {
       data.joy2.y = analogRead(joy2Y);
 
       data.joy2.sw = digitalRead(joy2SW);
-
-      // Get button data
-      data.button1 = digitalRead(button1);
-      data.button2 = digitalRead(button2);
 
       //Tx stuff above
 
