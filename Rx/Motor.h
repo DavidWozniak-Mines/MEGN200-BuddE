@@ -2,63 +2,63 @@
 #define MOTOR_H
 
 #include <Arduino.h>
+#include <Servo.h> // For control over servo-type motors
 
 class Motor {
     public: 
-        Motor(int ena1, int drive1, int drive2) : 
-        _drivePin1(drive1), _drivePin2(drive2), _enable(ena1) {
 
-            // Set pinmodes in constructor (initializer list)
-            pinMode(_enable, OUTPUT);
-            pinMode(_drivePin1, OUTPUT);
-            pinMode(_drivePin2, OUTPUT);
+        // Contructor for the motor class, set up to take in servo type motors
+        Motor(Servo& SERVO, bool INVERT) : 
+        _servo(SERVO) { // Initialize the reference to the servo
 
+            _invert = INVERT; // Set whether or not the motor is inverted (to account for mirrored servos)
         }
 
+        // Set the speed of the motor to a desired value
         void SetSpeed(int motorSpeed) {
-
-            // Give Motor speed on [0, 255]
+            
+            // Give motorSpeed on [-255, 255]
             _motorSpeed = motorSpeed;
 
+            // Remap to continuous servo
+            _motorSpeed = map(_motorSpeed, -255, 255, 0, 180);
+
+
         }
 
-        void DriveMotor(bool reverse=false) {
+        // Function to drive the motor, must be called continually for any effect
+        void DriveMotor() {
 
-            // Forward State
-            if (reverse == false) {
 
-                digitalWrite(_drivePin1, LOW);
-				digitalWrite(_drivePin2, HIGH);
-				analogWrite(_enable,_motorSpeed);
-
-            // Reverse State
-            } else {
-
-                digitalWrite(_drivePin1, HIGH);
-				digitalWrite(_drivePin2, LOW);
-				analogWrite(_enable,_motorSpeed);
-
+            // if the motor is inverted, remap to spectrum opposite values
+            if (_invert) {
+                _motorSpeed = map(_motorSpeed, 0, 180, 180, 0);
             }
+
+            _servo.write(_motorSpeed); // Write the current speed of the motor to the servo
 
             return;
 
         }
 
+        // Allows continous control of a motor based soley on joystick input value
         void DriveMotorJoy(int joyInput) {
 
             // Joy input is on the [0, 1023]
 
-            int speedVal = map(joyInput, 0, 1023, -255, 255);
+            int speedVal = map(joyInput, 0, 1023, -255, 255); // Remap joystick value to be essentially pwm output values
 
+            // Backward Case
             if (speedVal < (-1) *_joyDeadzone) {
-                this -> SetSpeed(abs(speedVal));
+                this -> SetSpeed(speedVal); // Set the motor speed to speedval
+                this -> DriveMotor(); // Drive the motor on this new speedval
 
-                this -> DriveMotor(true);
-
+            // Forward Case
             } else if (speedVal > _joyDeadzone) {
                 this -> SetSpeed(speedVal);
                 this -> DriveMotor();
 
+            // Zero Case
             } else {
                 this -> SetSpeed(0);
                 this -> DriveMotor();
@@ -66,23 +66,23 @@ class Motor {
 
         }   
 
+        // Function to completely stop the motor, will spin continuously otherwise
         void stopMotor() {
 
-            this -> SetSpeed(0);
-            this -> DriveMotor();
+            this -> SetSpeed(0); // Set the speed of the motor to zero
+            this -> DriveMotor(); // Drive the motor at speed zero to stop it
         }
 
 
     private:
 
-        int _drivePin1;
-        int _drivePin2;
+        Servo& _servo; // Reference to the servo motor the class object wraps
 
-        int _enable;
+        int _motorSpeed = 0; // The speed of the motor, default to zero
 
-        int _motorSpeed = 0;
+        int _joyDeadzone = 8; // The +- deadzone on the joystick, used to prevent movement when joystick is essentialy at zero
 
-        int _joyDeadzone = 3;
+        bool _invert; // Keeps track of whether the motor should be inverted. Used to handle mirrored motor configs
 
 };
 

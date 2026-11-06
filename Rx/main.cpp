@@ -1,9 +1,10 @@
 #include <Arduino.h>
 
-#include "Motor.h"
-#include "WifiPort3.h"
-#include "Joystick.h"
-#include "Ultrasonic.h"
+#include "Motor.h" // For control over robots motors
+#include "WifiPort3.h" // For wifi connection between R4s
+#include "Joystick.h" // To upack joystick objects
+#include "Ultrasonic.h" // To enable ultrasonic sensing
+#include "BudE.h" // For the robots control logic
 
 
 // A structure, similar to our servo and stepper motors, but this one conatins variables to be transmitted
@@ -25,13 +26,18 @@ DataPacket data;
 // Create wifiSerial Object
 WifiPort<DataPacket> WifiSerial;
 
-Motor motor1(5,4,3);
-Motor motor2(9,8,6);
+Servo leftServo; // Initialize left servo
+Servo rightServo; // Initialize right servo
 
-int echo = 13;
-int trigger = 12;
+Motor left(leftServo, true); // Initialize left motor, inverted
+Motor right(rightServo, false); // Initialize right motor, noninverted
+
+// Initialize ultrasonic sensor on correct pins for the BudDE
+int echo = 4; 
+int trigger = 3;
 
 Ultrasonic ultrasonic(trigger, echo);
+
 
 void setup() {
   //DONT USE PIN13 FOR ANY SENSOR OR ACTUATORS
@@ -45,33 +51,35 @@ void setup() {
 
   WifiSerial.begin("ssid_GROUP_64_WIFI", "password_PASSWORD", WifiPortType::Receiver);
 
-  ultrasonic.begin();
+  ultrasonic.begin(); // Start up the ultrasonic sensor
+
+  leftServo.attach(13); // Set the left motor to pin 13
+  rightServo.attach(12); // Set the right motor to pin 12
+
 }
+
+BudE budE(left, right, ultrasonic); // Initialize the BuddE robot using the above motors/ultrasonic
 
 void loop() {
 
- 
   while (!(WifiSerial.getPortType() == WifiPortType::Receiver && WifiSerial.checkForData())) {
     
-    // If connection is lost, info user and wait for connection
-    Serial.println("Connection Interuption");
-    delay(10);
+    // Do Nothing if Wifi is Not Connected
 
-    // If Connection is lost, stop all motor movement
-    motor1.stopMotor();
-    motor2.stopMotor();
   } 
 
-    data = WifiSerial.getData();//received and unpack data structure
+    data = WifiSerial.getData(); //received and unpack data structure
 
-    motor1.DriveMotorJoy(data.joy1.x);
-    motor2.DriveMotorJoy(data.joy2.x);
-  
+    budE.ManualDrive(data.joy1.y, data.joy2.y); // If wifi is connect default the robot to manual drive
 
-    Serial.print("Ultrasonic Distance: ");
-    Serial.println(ultrasonic.readDistanceCM());
+    if (data.joy1.sw == LOW) { // If the joystick button is pressed, initiate the auton mode
 
-  delay(1); // update delay after you get it working to be a smaller number like 10ms to account for WiFi transmission overhead
-  
+        budE.AutonDrive();
+
+    }
+
+
+  delay(1); // account for WiFi transmission overhead
+
 }
 
